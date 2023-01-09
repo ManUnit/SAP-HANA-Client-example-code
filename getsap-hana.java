@@ -9,9 +9,9 @@ import java.sql.Statement;
 public class hana {
     public static void main(String[] args) {
         // Replace <host>, <port>, <database_name>, <user>, and <password> with the appropriate values
-        String jdbcUrl = "jdbc:sap://hxehost:39074/BKK";
-        String user = "SYSTEM";
-        String password = "TBP@dmin7777";
+        String jdbcUrl = "jdbc:sap://<host>:<port>/<database>";
+        String user = "<user>";
+        String password = "<password>";
         
         try {
             // Load the SAP HANA JDBC driver
