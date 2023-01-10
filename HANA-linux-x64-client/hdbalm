@@ -1,0 +1,66 @@
+#!/bin/sh
+
+if  [ "z$PYTHON_EXE" == "z" ]; then
+	if  [ "z$PYTHON_HOME" == "z" ]; then
+		# PYTHON_HOME is not set -> use OS python
+		PYTHON_EXE_CAND="/usr/bin/python3"
+		if [ -x $PYTHON_EXE_CAND ]; then
+			PYTHON_EXE=$PYTHON_EXE_CAND
+		else
+			PYTHON_EXE_CAND="/usr/bin/python"
+			if [ -x $PYTHON_EXE_CAND ]; then
+				PYTHON_EXE=$PYTHON_EXE_CAND
+			fi
+		fi
+	else
+        PYTHON_EXE_CAND=$PYTHON_HOME/python3
+        if [ -x $PYTHON_EXE_CAND ]; then
+            PYTHON_EXE=$PYTHON_EXE_CAND
+        else
+            PYTHON_EXE_CAND=$PYTHON_HOME/python
+            if [ -x $PYTHON_EXE_CAND ]; then
+                PYTHON_EXE=$PYTHON_EXE_CAND
+            fi
+        fi
+	fi
+fi	
+
+HDBCLIENT_DIR=`dirname $0`
+
+pmaj="1"
+if  [ "z$PYTHON_EXE" != "z" ]; then
+    pmaj="$($PYTHON_EXE -c 'import platform; major, minor, patch = platform.python_version_tuple(); print(major)')"
+    pmin="$($PYTHON_EXE -c 'import platform; major, minor, patch = platform.python_version_tuple(); print(minor)')"
+fi
+
+if [ $pmaj -eq 3 ] && [ $pmin -ge 6 ]; then
+    HDBALM_CMD="$PYTHON_EXE -E $HDBCLIENT_DIR/hdbalm3.py"
+elif [ $pmaj -eq 2 ] && [ $pmin -ge 6 ]; then
+	echo "Python 2 detected."
+    echo "We strongly recommend you use Python 3 to prevent potential issues."
+	echo "See SAP note 2990848."
+    echo "Note that hdbalm is going to use installed version."
+    HDBALM_CMD="$PYTHON_EXE -E $HDBCLIENT_DIR/hdbalm.py"
+else
+    echo "No supported python version found."
+    echo "Install the latest version of Python 3.6 or later."
+	echo "See SAP note 2990848."
+    echo "After the installation of Python set the environment variable"
+    echo ""
+    echo "PYTHON_HOME "
+    echo ""
+    echo "to the location of the Python installation"
+    echo "or set the environment variable"
+    echo ""
+    echo "PYTHON_EXE "
+    echo ""
+    echo "to the location of the Python executable."
+    echo "As an example the command (bourne shell) is"
+    echo ""
+    echo "export PYTHON_HOME=/usr/python3"
+    echo ""
+
+    exit
+fi
+
+$HDBALM_CMD "$@"

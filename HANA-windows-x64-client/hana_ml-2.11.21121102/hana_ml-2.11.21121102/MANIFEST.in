@@ -1,0 +1,9 @@
+include version.txt
+include LICENSE
+include Fig/*
+include src/hana_ml/visualizers/templates/*
+include src/hana_ml/gs/references/*
+include src/hana_ml/artifacts/deployers/template/*
+include src/hana_ml/artifacts/generators/filewriter/templates/*
+include src/hana_ml/artifacts/config/data/*
+graft src/hana_ml/artifacts/generators/templates

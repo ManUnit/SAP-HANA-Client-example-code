@@ -1,0 +1,526 @@
+HASH(""PACKAGES"" => HASH(""odbc"" => HASH(""desc"" => ""ODBC Driver"";;""modtime"" => ""1673294650"";;""buildstring"" => ""2.11.14.1636568807"";;""checksum"" => ""377c48a94bc82e667dfeae82ddcce986"";;""name"" => ""ODBC"";;""script"" => ""use SDB::Install::SysVars\;
+use SDB::Install::DebugUtilities\;
+use SDB::Install::System qw \(
+    exec_program
+\)\;
+use SDB::Install::System::Registration::ODBC\;
+
+
+
+sub Register{
+    my \($self\) = @_\;
+    if \($isWin\){
+        my $inst              = $self->{'installation'}\;
+        my $conf              = $inst->getConfiguration\(\)\;
+        my $driverName        = $conf->{'params'}->{'ODBCDriverName'}->{'value'}\;
+        my $path              = $self->getPath \(\)\;
+        my $odbcreg           = $path . $path_separator . 'odbcreg.exe'\;
+        my $dll               = 'libodbcHDB.dll'\;
+        if\(! -f $odbcreg\) {
+            $odbcreg = $path . $path_separator . 'odbcreg32.exe'\;
+            $dll = 'libodbcHDB32.dll'\;
+        }
+        if\(not $self->IsUpdate\(\)\) {
+            # we only do registration when we are a new install, not a sw update.
+    		my $msg = $self->AddMessage \(\"Registering ODBC driver as \\"$driverName\\".\"\)\;
+    		my $cfg =  {}\;
+    		my $rc = exec_program \($odbcreg, ['-i', $driverName, '-p',$path, '-d', $dll],$cfg\)\;
+    		if \(!defined $rc || $rc != 0\){
+    			$self->AddError \(\"Could not register ODBC driver \\"$driverName\\"\", $cfg\)\;
+    			$self->AddSubMsgLst \($msg, $cfg\)\;
+    			return undef\;
+    		}
+    		$self->AddSubMsgLst \($msg, $cfg\)\;
+        }
+        else {
+            # when we are a sw update, we give a warning when we
+            # could not find a registration of our driver in the registry.
+            # Note that registrations may have been deleted intentionally,
+            # e.g. for security reasons.
+            my $odbcObj = new SDB::Install::System::Registration::ODBC\(\)\;
+            my $myNames  = $odbcObj->getDriverNamesAssignedToInstallation\($inst\)\;
+            if\( \(not defined $myNames\) || scalar\(@{$myNames}\) <= 0\) {
+                $self->AddWarning\(\"ODBC Driver \\"\".$path.$path_separator.$dll.\"\\" is not registered.\"\)\;
+                $self->AddWarning\(\"If this is not intentional, registration could be done as follows:\"\)\;
+                $self->AddWarning\(\"\\"$odbcreg\\" -i <driverName> -p \\"$path\\" -d $dll\"\)\;
+            }
+        }
+	}
+	return 1\;
+}
+
+#----------------------------------------------------------------------------
+
+sub Unregister{
+	my \(
+	   $self
+    \) = @_\;
+	if \($isWin\){
+        my $inst        = $self->{'installation'}\;
+        my $conf        = $inst->getConfiguration\(\)\;
+		my $path        = $self->getPath\(\)\;
+		my $odbcreg     = $path . $path_separator . 'odbcreg.exe'\;
+        if \(! -f $odbcreg\){
+            $odbcreg = $path . $path_separator . 'odbcreg32.exe'\;
+        }
+        my $odbcObj = new SDB::Install::System::Registration::ODBC\(\)\;
+        my $myNames  = $odbcObj->getDriverNamesAssignedToInstallation\($inst\)\;
+        if\(defined $myNames\) {
+            foreach my $driverName \(@$myNames\) {
+        		my $msg = $self->AddMessage \(\"Unregistering ODBC driver \\"$driverName\\".\"\)\;
+        		my $cfg =  {}\;
+        		my $rc = exec_program\($odbcreg, ['-r', $driverName], $cfg\)\;
+        		if \(!defined $rc || $rc != 0\){
+        			$self->AddError\(\"Could not unregister ODBC driver \\"$driverName\\".\", $cfg\)\;
+        			$self->AddSubMsgLst\($msg, $cfg\)\;
+        			return undef\;
+        		}
+        		$self->AddSubMsgLst\($msg, $cfg\)\;
+            }
+        }
+	}
+	return 1\;
+}
+
+#----------------------------------------------------------------------------
+
+sub Postinstall\(\) {
+        my \(
+            $self
+        \) = @_\;
+        my $path = $self->getPath\(\)\;
+        my $exeExt = $isWin ? '.exe' : ''\;
+        my $odbcCons = $path.$path_separator.'hdbodbc_cons'.$exeExt\;
+        if\(! -f $odbcCons\) {
+            $odbcCons = $path.$path_separator.'hdbodbc_cons32'.$exeExt\;
+        }
+        if\(-f $odbcCons\) {
+            $self->AddMessage\(\"Running $odbcCons to detect and remove invalid shared memory.\"\)\;
+            my $rc = exec_program\($odbcCons, ['-w', '256']\)\;
+            if\(defined $rc\) {
+                $self->AddMessage\(\"$odbcCons returned $rc.\"\)\;
+            }
+        }
+        return 1\;
+}
+
+
+1\;
+"";;""type"" => undef;;""size"" => ""46183092"";;""requires"" => ARRAY(HASH(""id"" => ""manifest"";;""str"" => ""manifest""));;""debugArchive"" => undef;;""version"" => ""2.11.14.1636568807"";;""isClientPackage"" => ""1"";;""valid"" => ""1"";;""git_hash"" => ""2708a618ba5d44937cca75de0ea8c41a396838bd"";;""files"" => HASH(""sdk/odbc/incl/sqltypes.h"" => HASH(""checksum"" => ""e58ce44eacc057646f8390d9cb1e7426"";;""mtime"" => ""1636569149"";;""size"" => ""9882"";;""mode"" => ""292"");;""libodbcHDB.so"" => HASH(""size"" => ""39861008"";;""mode"" => ""365"";;""mtime"" => ""1636569594"";;""checksum"" => ""4e8f1f3b6843e0a130ca573d5d342465"");;""sdk/odbc/incl/sqlext.h"" => HASH(""mtime"" => ""1636569149"";;""size"" => ""88594"";;""mode"" => ""292"";;""checksum"" => ""feccc4b23c9282d1107f5395171b1e98"");;""sdk/odbc/incl/sqlucode.h"" => HASH(""size"" => ""40283"";;""mode"" => ""292"";;""mtime"" => ""1636569149"";;""checksum"" => ""c11176e4df1803152a54a57b9dbefb23"");;""odbcreg"" => HASH(""checksum"" => ""8835020fc6976cc8b35dd2fbfa09c367"";;""mode"" => ""365"";;""size"" => ""17240"";;""mtime"" => ""1636569594"");;""sdk/odbc/incl/sql.h"" => HASH(""checksum"" => ""3c0047c64ddc8b0bb182e854d75ed641"";;""mtime"" => ""1636569149"";;""mode"" => ""292"";;""size"" => ""33784"");;""hdbodbc_cons"" => HASH(""mtime"" => ""1636569615"";;""mode"" => ""365"";;""size"" => ""6121448"";;""checksum"" => ""627a273b8aa51c02e53a29548c7ba33a"");;""sdk/odbc/incl/sqlsdbodbc.h"" => HASH(""mtime"" => ""1636569149"";;""mode"" => ""292"";;""size"" => ""10853"";;""checksum"" => ""937402fda2ee2e4bb693aaf683bfc8a7"")));;""ruby"" => HASH(""size"" => ""12261888"";;""type"" => undef;;""script"" => ""use SDB::Install::SysVars\;
+use SDB::Install::System qw \(exec_program\)\;
+
+use strict\;
+
+1\;
+"";;""name"" => ""Ruby Client"";;""modtime"" => ""1673294651"";;""desc"" => ""Ruby Client Interface"";;""checksum"" => ""2a3b5b1bd5b709ca9d3208d3a8078e02"";;""buildstring"" => ""2.11.14.1636568807"";;""files"" => HASH(""ruby/hanaclient/hanaclient-2.11.14-x86_64-linux.gem"" => HASH(""size"" => ""12249600"";;""mode"" => ""292"";;""mtime"" => ""1636569630"";;""checksum"" => ""057efbfa12523206751588477da79146"");;""ruby/activerecord/activerecord-hanaclient-adapter-2.11.14.gem"" => HASH(""mode"" => ""292"";;""size"" => ""12288"";;""mtime"" => ""1636569626"";;""checksum"" => ""34416873bc75db380eae288a764a373a""));;""git_hash"" => ""2708a618ba5d44937cca75de0ea8c41a396838bd"";;""isClientPackage"" => ""1"";;""valid"" => ""1"";;""version"" => ""2.11.14.1636568807"";;""debugArchive"" => undef;;""requires"" => ARRAY(HASH(""str"" => ""manifest"";;""id"" => ""manifest"");;HASH(""str"" => ""dbcapi"";;""id"" => ""dbcapi"")));;""hanamlr"" => HASH(""buildstring"" => ""2.11.14.1636568807"";;""modtime"" => ""1673294650"";;""checksum"" => ""2b1ad919ca263de70c91f0e0a300aabe"";;""desc"" => ""R Machine Learning Client for SAP HANA"";;""name"" => ""R Machine Learning Client"";;""script"" => ""1\;
+
+"";;""type"" => undef;;""size"" => ""1024583"";;""requires"" => ARRAY(HASH(""str"" => ""manifest"";;""id"" => ""manifest"");;HASH(""id"" => ""odbc"";;""str"" => ""odbc""));;""debugArchive"" => undef;;""version"" => ""2.11.14.1636568807"";;""isClientPackage"" => ""1"";;""valid"" => ""1"";;""git_hash"" => ""2708a618ba5d44937cca75de0ea8c41a396838bd"";;""files"" => HASH(""hana.ml.r_2.11.21121100.tar.gz"" => HASH(""checksum"" => ""0ff618a8bcbe976542fefa4f1cb844c2"";;""size"" => ""1024583"";;""mode"" => ""292"";;""mtime"" => ""1636569132"")));;""repotools"" => HASH(""valid"" => ""1"";;""isClientPackage"" => ""1"";;""requires"" => ARRAY(HASH(""id"" => ""manifest"";;""str"" => ""manifest""));;""debugArchive"" => undef;;""version"" => ""2.11.14.1636568807"";;""files"" => HASH(""rtt/lib/xliff_core-1.2.jar"" => HASH(""checksum"" => ""c1688203b65da8fd62d3f2094521f0e8"";;""mode"" => ""420"";;""size"" => ""506895"";;""mtime"" => ""1636569591"");;""rtt.sh"" => HASH(""mtime"" => ""1636569591"";;""mode"" => ""493"";;""size"" => ""112"";;""checksum"" => ""cfcc218f824cad2ed7b206646333fb5c"");;""rtt/lib/tc_mlt_base-0.0.361795.jar"" => HASH(""checksum"" => ""cdf3bb3ea1bded0b48d6c46ce98f4286"";;""mtime"" => ""1636569591"";;""mode"" => ""420"";;""size"" => ""930176"");;""rtt/lib/libsapjco3.so"" => HASH(""checksum"" => ""52f751eb72aff15865aafe82dd701366"";;""mtime"" => ""1636569591"";;""size"" => ""5379810"";;""mode"" => ""420"");;""rtt/lib/sapjco3.jar"" => HASH(""mtime"" => ""1636569591"";;""mode"" => ""420"";;""size"" => ""1478758"";;""checksum"" => ""a00c344db3c8e633838cabe3a099377e"");;""rtt/lib/xliff_api-1.2.jar"" => HASH(""checksum"" => ""187ad96084d163cfce346c197fcd10c1"";;""mtime"" => ""1636569591"";;""mode"" => ""420"";;""size"" => ""252874"");;""rtt/lib/json-rpc-1.0.jar"" => HASH(""size"" => ""76889"";;""mode"" => ""420"";;""mtime"" => ""1636569591"";;""checksum"" => ""d22063588616576c96d6525cae502f38"");;""rtt/lib/tc_logging_java-1.0.0.jar"" => HASH(""checksum"" => ""3c0c956b47998cd4fd4695d39d2f25d1"";;""size"" => ""311230"";;""mode"" => ""420"";;""mtime"" => ""1636569591"");;""rtt/Readme.txt"" => HASH(""size"" => ""21136"";;""mode"" => ""420"";;""mtime"" => ""1636569591"";;""checksum"" => ""e8ea3378f328343b7a9e7f8339d88b2d"");;""regi"" => HASH(""checksum"" => ""56bc8fd488ffc7a4e5f1810bd60e62c3"";;""mtime"" => ""1636569707"";;""mode"" => ""365"";;""size"" => ""59528880"");;""rtt/lib/xliff_sapmetadata-1.2.jar"" => HASH(""mtime"" => ""1636569591"";;""mode"" => ""420"";;""size"" => ""41316"";;""checksum"" => ""9541dde394fb88eadc69a6dba0952404"");;""rtt/lib/tc_mlt_tsapi-0.0.361016.jar"" => HASH(""mtime"" => ""1636569591"";;""mode"" => ""420"";;""size"" => ""286833"";;""checksum"" => ""cc6f1efe75ccdcf67ddd7e6d64160765"");;""rtt/lib/rtt.jar"" => HASH(""size"" => ""99705"";;""mode"" => ""420"";;""mtime"" => ""1636569591"";;""checksum"" => ""c1d463b385cb910c2996e08ff3230bbc"");;""rtt/rtt.properties"" => HASH(""mtime"" => ""1636569591"";;""mode"" => ""420"";;""size"" => ""464"";;""checksum"" => ""09c4d96a1e45c841e2800a6ccceacab8""));;""git_hash"" => ""2708a618ba5d44937cca75de0ea8c41a396838bd"";;""script"" => ""use strict\;
+
+our $listname = 'hdbclient.lst'\;
+
+sub getExternalFileListName{
+    return $listname\;
+}
+
+1\;
+"";;""modtime"" => ""1673294650"";;""buildstring"" => ""2.11.14.1636568807"";;""checksum"" => ""80a5e41f2466b47a1ea46bf09fb492cd"";;""desc"" => ""Repository Tools"";;""name"" => ""REPOTOOLS"";;""type"" => undef;;""size"" => ""68915078"");;""calcview"" => HASH(""script"" => ""use SDB::Install::SysVars\;
+use SDB::Install::System qw \(exec_program\)\;
+
+use strict\;
+
+1\;
+"";;""name"" => ""Calculation View API"";;""buildstring"" => ""2.11.14.1636568807"";;""modtime"" => ""1673294651"";;""desc"" => ""Calculation View API"";;""checksum"" => ""2b15300a13b27006c135f743a3f0fab9"";;""type"" => undef;;""size"" => ""5990817"";;""valid"" => ""1"";;""isClientPackage"" => ""1"";;""debugArchive"" => undef;;""version"" => ""2.11.14.1636568807"";;""files"" => HASH(""calcviewapi/HANACalculationViewAPI-OnPrem-1.5.3.jar"" => HASH(""mode"" => ""292"";;""size"" => ""718335"";;""mtime"" => ""1636569107"";;""checksum"" => ""bf7d30184980cad2084072730f57b504"");;""calcviewapi/HANACalculationViewAPI-Cloud-1.5.3-javadoc.jar"" => HASH(""checksum"" => ""e3baab0e187911f666049ffd8fd3a74d"";;""mtime"" => ""1636569107"";;""size"" => ""2220431"";;""mode"" => ""292"");;""calcviewapi/HANACalculationViewAPI-Cloud-1.5.3.jar"" => HASH(""checksum"" => ""a177f62f40a6424319670a8a5fd01aa5"";;""mtime"" => ""1636569107"";;""size"" => ""674711"";;""mode"" => ""292"");;""calcviewapi/HANACalculationViewAPI-OnPrem-1.5.3-javadoc.jar"" => HASH(""checksum"" => ""2b8b0cc7ba0ffe724171c5f5521021f6"";;""mode"" => ""292"";;""size"" => ""2377340"";;""mtime"" => ""1636569107""));;""git_hash"" => ""2708a618ba5d44937cca75de0ea8c41a396838bd"");;""golang"" => HASH(""files"" => HASH(""golang/src/SAP/go-hdb/driver/driver.go"" => HASH(""mtime"" => ""1636569597"";;""size"" => ""59999"";;""mode"" => ""292"";;""checksum"" => ""eee6a12e17d40d568aa94f79ea3ea9a9"");;""golang/src/SAP/go-hdb/driver/dsn.go"" => HASH(""size"" => ""1764"";;""mode"" => ""292"";;""mtime"" => ""1636569597"";;""checksum"" => ""6325fac6a02d470b2728f3203e42c456"");;""golang/src/SAP/go-hdb/driver/includes/DBCAPI.h"" => HASH(""checksum"" => ""51c1d89c89491e7d9f113640cd555309"";;""mtime"" => ""1636569597"";;""mode"" => ""292"";;""size"" => ""59127"");;""golang/src/SAP/go-hdb/driver/includes/DBCAPI_DLL.h"" => HASH(""checksum"" => ""75b2ddf6afae0e321b8dd51dabe021cb"";;""mtime"" => ""1636569597"";;""size"" => ""20114"";;""mode"" => ""292""));;""git_hash"" => ""2708a618ba5d44937cca75de0ea8c41a396838bd"";;""valid"" => ""1"";;""isClientPackage"" => ""1"";;""version"" => ""2.11.14.1636568807"";;""debugArchive"" => undef;;""requires"" => ARRAY(HASH(""id"" => ""manifest"";;""str"" => ""manifest"");;HASH(""id"" => ""dbcapi"";;""str"" => ""dbcapi""));;""size"" => ""141004"";;""type"" => undef;;""script"" => ""use SDB::Install::SysVars\;
+use SDB::Install::System qw \(exec_program\)\;
+
+use strict\;
+
+1\;
+"";;""name"" => ""golang Client"";;""desc"" => ""golang DBCAPI Client Interface"";;""modtime"" => ""1673294651"";;""buildstring"" => ""2.11.14.1636568807"";;""checksum"" => ""27fb7169a4f7d5c46e7c9f6b3eeb6788"");;""sqldbc"" => HASH(""size"" => ""98255852"";;""type"" => undef;;""script"" => ""use SDB::Install::SysVars\;
+use SDB::Install::System qw \(exec_program\)\;
+
+use strict\;
+
+our $listname = 'hdbclient.lst'\;
+
+sub getExternalFileListName{
+    return $listname\;
+}
+
+sub Postinstall\(\) {
+        my \(
+            $self
+        \) = @_\;
+        my $path = $self->getPath\(\)\;
+        my $exeExt = $isWin ? '.exe' : ''\;
+        my $sqldbcCons = $path.$path_separator.'hdbsqldbc_cons'.$exeExt\;
+        if\(-f $sqldbcCons\) {
+            $self->AddMessage\(\"Running $sqldbcCons to detect and remove invalid shared memory.\"\)\;
+            my $rc = exec_program\($sqldbcCons, ['-w', '256']\)\;
+            if\(defined $rc\) { 
+                $self->AddMessage\(\"$sqldbcCons returned $rc.\"\)\;
+            }
+        }
+        return 1\;
+}
+
+1\;
+"";;""desc"" => ""C/C++ interface"";;""modtime"" => ""1673294649"";;""buildstring"" => ""2.11.14.1636568807"";;""checksum"" => ""5071afab48de2db56a32ceed301b5981"";;""name"" => ""SQLDBC"";;""files"" => HASH(""scripts/hdbkeystore"" => HASH(""checksum"" => ""3d2256f3934d368dbfcf3f2b56007009"";;""mtime"" => ""1636569149"";;""size"" => ""162"";;""mode"" => ""493"");;""hdbsql"" => HASH(""mtime"" => ""1636569596"";;""mode"" => ""365"";;""size"" => ""39890376"";;""checksum"" => ""59c7ef9721df7fb9d59be2f84e208df8"");;""hdbsqldbc_cons"" => HASH(""mtime"" => ""1636569615"";;""size"" => ""6121048"";;""mode"" => ""365"";;""checksum"" => ""8d72e29d2131eda4977ff509300bc3a9"");;""scripts/hdbsql"" => HASH(""mode"" => ""493"";;""size"" => ""162"";;""mtime"" => ""1636569149"";;""checksum"" => ""3d2256f3934d368dbfcf3f2b56007009"");;""hdbkeystore"" => HASH(""mtime"" => ""1636569592"";;""mode"" => ""365"";;""size"" => ""8367096"";;""checksum"" => ""a98c16c4fe27b335c81974326b696fd5"");;""libSQLDBCHDB.so"" => HASH(""checksum"" => ""5eb44e7454d7d0c0a9bf75290e9564be"";;""size"" => ""38212936"";;""mode"" => ""365"";;""mtime"" => ""1636569589"");;""hdbuserstore"" => HASH(""checksum"" => ""95844654f296fbb179cbd8a5ce64daba"";;""mtime"" => ""1636569592"";;""mode"" => ""365"";;""size"" => ""5664072""));;""git_hash"" => ""2708a618ba5d44937cca75de0ea8c41a396838bd"";;""isClientPackage"" => ""1"";;""valid"" => ""1"";;""version"" => ""2.11.14.1636568807"";;""requires"" => ARRAY(HASH(""id"" => ""manifest"";;""str"" => ""manifest""));;""debugArchive"" => undef);;""commoncryptolib"" => HASH(""modtime"" => ""1673294651"";;""checksum"" => ""33a3cdaa148f085a83271d265f0b71a9"";;""buildstring"" => ""2.11.14.1636568807"";;""desc"" => ""SAP CommonCryptoLib"";;""name"" => ""CommonCryptoLib"";;""script"" => ""use SDB::Install::SysVars\;
+use SDB::Install::System qw \(exec_program\)\;
+
+use strict\;
+
+1\;
+"";;""size"" => ""5529160"";;""type"" => undef;;""version"" => ""2.11.14.1636568807"";;""requires"" => ARRAY(HASH(""id"" => ""manifest"";;""str"" => ""manifest""));;""debugArchive"" => undef;;""valid"" => ""1"";;""isClientPackage"" => ""1"";;""git_hash"" => ""2708a618ba5d44937cca75de0ea8c41a396838bd"";;""files"" => HASH(""libsapcrypto.so"" => HASH(""checksum"" => ""dfcefeeafda6aa9f1f7b582e772a6a3d"";;""mtime"" => ""1636569113"";;""mode"" => ""365"";;""size"" => ""5490840"");;""sapgenpse"" => HASH(""checksum"" => ""a5cec134925e854969020e6c4ee90576"";;""size"" => ""38320"";;""mode"" => ""365"";;""mtime"" => ""1636569113"")));;""clientInstaller"" => HASH(""checksum"" => ""c93f2cf17d3251eaf06add94d51c2651"";;""buildstring"" => ""2.6.48"";;""desc"" => ""Resident Installation Tools for HANA Client"";;""modtime"" => ""1673294651"";;""name"" => ""Client Installer"";;""script"" => ""use SDB::Install::System\;
+use SAPDB::Install::MD5Sum\;
+use SDB::Install::Tools\;
+use SDB::Install::SysVars qw \($isWin $path_separator\)\;
+
+sub initPackage{
+	my \($self\) = @_\;
+	if \($self->isa \('SDB::Install::Package::Installable'\)\){
+		$self->FindKitFiles \(\)\;
+		my %union = \(%{$self->{data}->{files}},%{$self->{kitfiles}}\)\;
+		my $tmp\;
+		my $size = 0\;
+		foreach my $key \(sort keys \(%union\)\){
+			$tmp .= $union{$key}->{checksum}\;
+			$size +=  $union{$key}->{size}\;
+		}
+		$self->{data}->{checksum} = MD5Str \($tmp\)\;
+		$self->{data}->{size} = $size\;
+	}
+	return 1\;
+}
+
+sub GetNumberOfFiles \($\) {
+    my \($self\) = @_\;
+    my $nFiles = $self->SUPER::GetNumberOfFiles\(\)\;
+
+    if \($self->isa \('SDB::Install::Package::Installable'\) && defined $self->{kitfiles}\){
+        $nFiles += scalar keys %{$self->{kitfiles}}\;
+    }
+    return $nFiles\;
+}
+
+sub FindKitFiles{
+    my \($self\) = @_\;
+    $self->AddMessage \('Installer is part of installation kit'\)\;
+    require SDB::Install::Installer\;
+    my $installer = new SDB::Install::Installer \(\)\;
+    my $dir\;
+    if \($installer->can\('getInstRuntimeDir'\)\){
+       $dir = $installer->getInstRuntimeDir\(\)\;
+    }
+    else{
+       $dir = $installer->getInstallerDir\(\) . $path_separator . 'instruntime'\;
+    }
+    my $entries = find \($dir, $self, FIND_TYPE_FILE, undef, undef, '/'\)\;
+    if \(!defined $entries\){
+        return undef\;
+    }
+    my %filelist\;
+    my %filesource\;
+    my $prefix  = 'install'.$path_separator.'instruntime'\;
+    my $file\;
+    my @statbuf\;
+    foreach $entry \(@$entries\){
+        $file = $dir . $path_separator . $entry\;
+        @statbuf = stat \($file\)\;
+        my %info = \(
+                'checksum' => MD5Sum \($file\),
+                'size' => $statbuf [7],
+                'mode' => $statbuf [2] & 07777,
+                'mtime' => $statbuf [9]
+                \)\;
+
+        $filelist{$prefix .'/'. $entry} = \%info\;
+        $filesource{$prefix .'/'. $entry} = $file\;
+    }
+    if \($isWin\){
+        $prefix = 'install'\;
+        my @entries\;
+        my $installerDir = $installer->getInstallerDir \(\)\;
+        if \(opendir \(DH, $installerDir\)\){
+            @entries = grep {/^\(msv|vcruntime\).*\.dll$/i} readdir \(DH\)\;
+            closedir \(DH\)\;
+        }
+        foreach $entry \(@entries\){
+            $file = $installerDir . $path_separator . $entry\;
+            @statbuf = stat \($file\)\;
+            my %info = \(
+                'checksum' => MD5Sum \($file\),
+                'size' => $statbuf [7],
+                'mode' => $statbuf [2] & 07777,
+                'mtime' => $statbuf [9]
+                \)\;
+            $filelist{$prefix .'/'. $entry} = \%info\;
+            $filesource{$prefix .'/'. $entry} = $file\;
+        }
+    }
+    $self->{kitfiles} = \%filelist\;
+    $self->{filesource} = \%filesource\;
+    return 1\;
+}
+
+sub Extract{
+	my \($self, $destdir\) = @_\;
+	if \($self->isa \('SDB::Install::Package::Installed'\)\){
+		die \(\"Extract \(\) is not allowed in this context.\n\"\)\;
+	}
+	# extract files from archive:
+	unless \(defined $self->SUPER::Extract\(\)\){
+		return undef\;
+	}
+	# copy files from installation kit and add them:
+	unless \(defined $self->{kitfiles}\){
+		$self->FindKitFiles \(\)\;
+	}
+	my $config = {'createdir' => 1}\;
+	if \($^O !~ /mswin/i\){
+		$config->{uid} = $self->{installation}->getUID \(\)\;
+		$config->{gid} = $self->{installation}->getGID\(\)\;
+	}
+	my $files = $self->{kitfiles}\;
+	my $mode\;
+	my $path = defined $destdir ? $destdir : $self->getPath \(\)\;
+	foreach my $file \(keys \(%$files\)\){
+		my $msg = $self->AddProgressMessage \('copying '.$file\)\;
+		my $do_chmod = 0\;
+		if \($file =~ /\.tgz$/i\){
+			$mode = 0444\;
+		}
+		else{
+			$mode = 0555\;
+		}
+		if \($^O !~ /mswin/i and $files->{$file}->{mode} != $mode\){
+			$files->{$file}->{mode} = $mode\;
+			$do_chmod = 1\;
+		}
+		$msg->{submsg} = [$self->GenMsg \('INFO', sprintf \(\"file info: mode = 0%o, size = %d bytes\", $files->{$file}->{mode} & 07777,$files->{$file}->{size}\)\)]\;
+		# try to remove readonly attribute on windows:
+		if \($isWin\){
+			my @stat = stat \($path.'/'.$file\)\;
+			if \(@stat && \($stat[2] & 0222\) == 0\){
+				chmod \($stat[2] | 0222, $path.'/'.$file\)\;
+			}
+		}
+		unless \(defined copy_file \($self->{filesource}->{$file},$path.'/'.$file,$config\)\){
+			$self->AddError \('cannot copy file '.$file ,$config\)\;
+			return undef\;
+		}
+		if \($do_chmod\){
+			if \(! chmod \($files->{$file}->{mode}, $path.'/'.$file\)\){
+				$self->AddError \(\"cannot chmod file $path/$file: $!\"\)\;
+				return undef\;
+			}
+		}
+		$self->{data}->{files}->{$file} = $files->{$file}\;
+	}
+	return 1\;
+}
+
+sub Postuninstall{
+	# Change the current working directory, because installer uses its
+	# runtime directory for this purpose.
+	# Otherwise the installer directory will survive the uninstallation
+	# on Windows:
+	if \($isWin\){
+		chdir \('C:\\'\)\;
+	}
+	return 1\;
+}
+
+
+#This function overrides 'getShortcutDefinitions'
+#from 'Package.pm'.
+sub getShortcutDefinitions {
+    my \($self\) = @_\;
+    my $retval\;
+        $retval = []\;
+    return $retval\;
+}
+
+1\;
+
+"";;""size"" => ""107490873"";;""type"" => undef;;""version"" => ""2.6.48.0"";;""debugArchive"" => undef;;""valid"" => ""1"";;""git_hash"" => ""934c53a182f3"";;""files"" => HASH(""install/instruntime/Exporter/Heavy.pm"" => HASH(""checksum"" => ""20279b94df9b9dbc76a3b4d0439324a8"";;""mtime"" => ""1636569731"";;""size"" => ""6561"";;""mode"" => ""365"");;""install/instruntime/Wx.so"" => HASH(""checksum"" => ""14f4b70ad002549f44039d0f9fb9b56a"";;""mtime"" => ""1636569731"";;""mode"" => ""365"";;""size"" => ""4221688"");;""install/instruntime/SHA.so"" => HASH(""mtime"" => ""1636569731"";;""size"" => ""43552"";;""mode"" => ""365"";;""checksum"" => ""7e0aacefdb5f091de07487b10cf0ccb2"");;""install/instruntime/lcm_pm_ext.tgz"" => HASH(""size"" => ""1475129"";;""mode"" => ""292"";;""mtime"" => ""1636569731"";;""checksum"" => ""227da1678de7ea0807bd8468dedb91c4"");;""install/instruntime/version.pm"" => HASH(""checksum"" => ""e60bdde345251ac96b5f59aaeb77b683"";;""mtime"" => ""1636569731"";;""mode"" => ""365"";;""size"" => ""1976"");;""install/instruntime/DND.so"" => HASH(""checksum"" => ""cbbbf3b1b1ae9719b173262d163209a3"";;""mtime"" => ""1636569731"";;""size"" => ""110440"";;""mode"" => ""365"");;""install/instruntime/version/regex.pm"" => HASH(""checksum"" => ""1804cdcea69766fe0b4587f713779d20"";;""mtime"" => ""1636569731"";;""mode"" => ""365"";;""size"" => ""4072"");;""install/instruntime/warnings/register.pm"" => HASH(""checksum"" => ""2d8f6ce093a2176b982c0e12c0194b3b"";;""mtime"" => ""1636569731"";;""size"" => ""759"";;""mode"" => ""365"");;""install/instruntime/libwx_gtk2u-3.0.so.0"" => HASH(""mode"" => ""365"";;""size"" => ""18444224"";;""mtime"" => ""1636569731"";;""checksum"" => ""f0141fe8e3635b6d91df080cf6faa5b5"");;""install/instruntime/Cwd.so"" => HASH(""mode"" => ""365"";;""size"" => ""22576"";;""mtime"" => ""1636569731"";;""checksum"" => ""bfa3624c3cda0334e804fa2187153f96"");;""install/instruntime/Getopt/Long.pm"" => HASH(""checksum"" => ""7119f2c25b6e2352580da9b6a84c9ab9"";;""mode"" => ""365"";;""size"" => ""83322"";;""mtime"" => ""1636569731"");;""install/instruntime/constant.pm"" => HASH(""checksum"" => ""56cde6eba0f667ab56196613df3933c1"";;""size"" => ""14724"";;""mode"" => ""365"";;""mtime"" => ""1636569731"");;""install/instruntime/IO.so"" => HASH(""checksum"" => ""d219adb7e7f3d76f8bbdf83b5b8a2c68"";;""mtime"" => ""1636569731"";;""mode"" => ""365"";;""size"" => ""23192"");;""install/instruntime/SSLeay.so"" => HASH(""mtime"" => ""1636569731"";;""size"" => ""554824"";;""mode"" => ""365"";;""checksum"" => ""0f1f70a4a21035c3f5bc55ec36b1f04f"");;""install/instruntime/sdbrun"" => HASH(""checksum"" => ""5ed9b551a16d1f595ae1697d65459b18"";;""size"" => ""12064"";;""mode"" => ""365"";;""mtime"" => ""1636569731"");;""install/instruntime/Carp.pm"" => HASH(""checksum"" => ""01d59a664a69ffaed1bd0300ba0c7134"";;""mtime"" => ""1636569731"";;""size"" => ""35959"";;""mode"" => ""365"");;""install/instruntime/vars.pm"" => HASH(""size"" => ""2458"";;""mode"" => ""365"";;""mtime"" => ""1636569731"";;""checksum"" => ""fec1c1985d96c2edd842ff2b71821afb"");;""install/instruntime/Encode.so"" => HASH(""mtime"" => ""1636569731"";;""mode"" => ""365"";;""size"" => ""55016"";;""checksum"" => ""0331cc99b45bb8e490bbf324b833591d"");;""install/instruntime/libSQLDBCHDB.so"" => HASH(""mode"" => ""365"";;""size"" => ""71698272"";;""mtime"" => ""1636569731"";;""checksum"" => ""97ed5c5ba46145d09554663dc3d274e2"");;""install/hdbclientreg"" => HASH(""mtime"" => ""1631714756"";;""mode"" => ""365"";;""size"" => ""14744"";;""checksum"" => ""2d7917550027a8132b3d5f0ab2183518"");;""install/instruntime/LibXML.so"" => HASH(""mtime"" => ""1636569731"";;""size"" => ""2318256"";;""mode"" => ""365"";;""checksum"" => ""d9ffac381f63fce3d4d0d471a89974ff"");;""install/instruntime/Socket.so"" => HASH(""mtime"" => ""1636569731"";;""mode"" => ""365"";;""size"" => ""48496"";;""checksum"" => ""acb959f96e8c59c845a3473dfbf5fa92"");;""install/instruntime/Exporter.pm"" => HASH(""checksum"" => ""ab8a4ab48b1da0cfd98aea5e8dd82be9"";;""mtime"" => ""1636569731"";;""size"" => ""18805"";;""mode"" => ""365"");;""install/instruntime/lcm_pm.tgz"" => HASH(""checksum"" => ""1fd768f65643843c5af9c3f657f04b17"";;""mtime"" => ""1636569731"";;""mode"" => ""292"";;""size"" => ""1434413"");;""install/instruntime/Dumper.so"" => HASH(""checksum"" => ""e2c67a82d15d1833f17cd92e62fa0148"";;""size"" => ""44416"";;""mode"" => ""365"";;""mtime"" => ""1636569731"");;""install/instruntime/HiRes.so"" => HASH(""checksum"" => ""471a782fe78f419136751c912707f4b5"";;""mtime"" => ""1636569731"";;""mode"" => ""365"";;""size"" => ""31424"");;""install/instruntime/SSH2.so"" => HASH(""checksum"" => ""435792afe34da8c9bd6e354ef19d4500"";;""mode"" => ""365"";;""size"" => ""154656"";;""mtime"" => ""1636569731"");;""install/hdbuninst"" => HASH(""checksum"" => ""9947e4771ddcc859573f5abac88321e3"";;""mode"" => ""365"";;""size"" => ""14744"";;""mtime"" => ""1631714756"");;""install/hdbinst"" => HASH(""size"" => ""14744"";;""mode"" => ""365"";;""mtime"" => ""1631714756"";;""checksum"" => ""2248e4c5547b46522d7c12a67210f8db"");;""install/instruntime/overloading.pm"" => HASH(""mtime"" => ""1636569731"";;""mode"" => ""365"";;""size"" => ""1808"";;""checksum"" => ""36e1b34f8175e036d57e51fd7d56becd"");;""install/instruntime/Parser.so"" => HASH(""checksum"" => ""18282242796b5b8995fecb56baebfa3a"";;""mode"" => ""365"";;""size"" => ""53880"";;""mtime"" => ""1636569731"");;""install/instruntime/FCGI.so"" => HASH(""mtime"" => ""1636569731"";;""size"" => ""70120"";;""mode"" => ""365"";;""checksum"" => ""7df38205de8b2c7bee443a5c2ec47873"");;""install/instruntime/libperl.so"" => HASH(""mtime"" => ""1636569731"";;""size"" => ""3777888"";;""mode"" => ""365"";;""checksum"" => ""f359ce13bd897b7646c647dcc50d13b7"");;""install/instruntime/warnings.pm"" => HASH(""mtime"" => ""1636569731"";;""mode"" => ""365"";;""size"" => ""50537"";;""checksum"" => ""9e4fb3e9ce2ce52fa241d7147c361133"");;""install/instruntime/Grid.so"" => HASH(""checksum"" => ""8607b3b2840c71fc41518aeb6525efa4"";;""mtime"" => ""1636569731"";;""size"" => ""431296"";;""mode"" => ""365"");;""install/instruntime/SQLDBC.so"" => HASH(""mtime"" => ""1636569731"";;""size"" => ""93896"";;""mode"" => ""365"";;""checksum"" => ""d84d5058418d86e7eef8dc2c2a5e683f"");;""install/instruntime/lcm_res.tgz"" => HASH(""checksum"" => ""0077e3ecb37cdd02624729454e42b8f9"";;""mtime"" => ""1636569731"";;""mode"" => ""292"";;""size"" => ""30702"");;""install/instruntime/overload.pm"" => HASH(""mtime"" => ""1636569731"";;""mode"" => ""365"";;""size"" => ""53302"";;""checksum"" => ""ae1657871c87fe4782c6468e70a6463f"");;""install/instruntime/libsdbrun.so"" => HASH(""checksum"" => ""6c822b454935240b2ca2d75216e8d563"";;""mode"" => ""365"";;""size"" => ""1999528"";;""mtime"" => ""1636569731"");;""install/instruntime/strict.pm"" => HASH(""checksum"" => ""441328c7ffbbe42a0226ec65bde71715"";;""size"" => ""4738"";;""mode"" => ""365"";;""mtime"" => ""1636569731"");;""install/instruntime/Base64.so"" => HASH(""checksum"" => ""5aa907617d057119e954a68a0bc6df1d"";;""size"" => ""17672"";;""mode"" => ""365"";;""mtime"" => ""1636569731"")));;""dotnetcore"" => HASH(""version"" => ""2.11.14.1636568807"";;""debugArchive"" => ""DOTNETCORE.DEBUG.TGZ"";;""requires"" => ARRAY(HASH(""str"" => ""manifest"";;""id"" => ""manifest""));;""isClientPackage"" => ""1"";;""valid"" => ""1"";;""git_hash"" => ""2708a618ba5d44937cca75de0ea8c41a396838bd"";;""files"" => HASH(""dotnetcore/v2.1/Sap.Data.Hana.Core.v2.1.deps.json"" => HASH(""checksum"" => ""b458b4393832208a49beb5f0ff444786"";;""mode"" => ""292"";;""size"" => ""487"";;""mtime"" => ""1636569602"");;""dotnetcore/v2.1/Sap.Data.Hana.Core.v2.1.pdb"" => HASH(""checksum"" => ""18e23fc87e0169d2b38359a03bdc51cf"";;""size"" => ""126316"";;""dbg"" => ""1"";;""mode"" => ""292"";;""mtime"" => ""1636569601"");;""dotnetcore/v2.1/Sap.Data.Hana.Core.v2.1.dll"" => HASH(""checksum"" => ""eed9c94d50b1db7953b6555e3df361a3"";;""mtime"" => ""1636569606"";;""mode"" => ""292"";;""size"" => ""271992"");;""dotnetcore/libadonetHDB.so"" => HASH(""checksum"" => ""7b3445468b7b7326c3cdcbd8ccfdc5b3"";;""size"" => ""38652128"";;""mode"" => ""365"";;""mtime"" => ""1636569590""));;""name"" => "".NET Core"";;""modtime"" => ""1673294651"";;""desc"" => "".NET Core 2.1 Provider"";;""checksum"" => ""2f8fea6c221c25f9fb65e3d8c4efc72f"";;""buildstring"" => ""2.11.14.1636568807"";;""script"" => ""use SDB::Install::SysVars\;
+use SDB::Install::System qw \(isAdmin exec_program\)\;
+use SDB::Install::System::EnvVariable\;
+
+use strict\;
+
+my $envvar = 'HDBDOTNETCORE'\;
+
+sub Register {
+    if \(!$isWin\) {
+        return 1\;
+    }
+    my \($self\) = @_\;
+    my $path = $self->getPath \(\) . $path_separator . \"dotnetcore\"\;
+    my $var = new SDB::Install::System::EnvVariable \($envvar, $path\)\;
+    my $errlst = new SDB::Install::MsgLst \(\)\;
+    my $msg = $self->AddMessage \(\"Setting \" . $envvar . \" environment variable to path: \" . $path\)\;
+    $var->{EnvVarValue} = $path\;
+    $var->{EnvVarType} = 'USER'\;
+    if \(isAdmin \(\)\) {
+        $var->{EnvVarType} = 'SYSTEM'\;
+    }
+    if \(!defined $var->set \(\)\) {
+        $self->AddError \(\"Failed to set \" . $envvar, $errlst\)\;
+    }
+    $self->AddSubMsgLst \($msg, $var\)\;
+}
+
+sub Unregister {
+    if \(!$isWin\) {
+        return 1\;
+    }
+    my \($self\) = @_\;
+    my $path = $self->getPath \(\) . $path_separator . \"dotnetcore\"\;
+    my $var = new SDB::Install::System::EnvVariable \($envvar, $path\)\;
+    my $errlst = new SDB::Install::MsgLst \(\)\;
+    my $msg = $self->AddMessage \(\"Removing \" . $envvar . \" environment variable\"\)\;
+    $var->{EnvVarExtend} = 'No'\;
+    $var->{EnvVarType} = 'USER'\;
+    if \(isAdmin \(\)\) {
+        $var->{EnvVarType} = 'SYSTEM'\;
+    }
+    if \(!defined $var->unset \(\)\) {
+        $self->AddError \(\"Failed to remove \" . $envvar, $errlst\)\;
+    }
+    $self->AddSubMsgLst \($msg, $var\)\;
+}
+
+1\;
+"";;""size"" => ""39050923"";;""type"" => undef);;""manifest"" => HASH(""script"" => ""sub Postinstall{
+    # load/refresh manifest
+    $_[0]->{installation}->getManifest \(1\)\;
+}
+
+1\;
+"";;""modtime"" => ""1673294649"";;""checksum"" => ""9b2cd9f1b25e87b4770ae873e16f9658"";;""buildstring"" => ""2.11.14.1636568807"";;""desc"" => ""Product Manifest"";;""name"" => ""Product Manifest"";;""type"" => undef;;""size"" => ""1166"";;""valid"" => ""1"";;""isClientPackage"" => ""1"";;""debugArchive"" => undef;;""version"" => ""2.11.14.1636568807"";;""files"" => HASH(""manifest"" => HASH(""mode"" => ""292"";;""size"" => ""1166"";;""mtime"" => ""1636569584"";;""checksum"" => ""ab2b78aa63d8d748429659862215044d""));;""git_hash"" => ""2708a618ba5d44937cca75de0ea8c41a396838bd"");;""envscript"" => HASH(""script"" => ""use File::Spec\;
+use SDB::Install::SysVars\;
+use SDB::Install::System qw \(isAdmin exec_program\)\;
+use SDB::Install::System::EnvVariable\;
+
+sub Register\(\) {
+    if \(!$isWin\) {
+        return 1\;
+    }
+    my \($self\) = @_\;
+    my $path = $self->getPath \(\)\;
+
+    if \(defined $ENV{HDB_INSTALL_NOPATH}\) {
+        $self->AddMessage \(\"HDB_INSTALL_NOPATH is set, skipping setting PATH\"\)\;
+        return 1\;
+    }
+    if \(index\($path, '\\usr\\sap'\) != -1\) {
+        $self->AddMessage \(\"\\usr\\sap appears in path, skipping setting PATH\"\)\;
+        return 1\;
+    }
+    my $var = new SDB::Install::System::EnvVariable \(\"PATH\", $path\)\;
+    my $errlst = new SDB::Install::MsgLst \(\)\;
+    $var->{EnvVarValue} = $path\;
+    $var->{EnvVarExtend} = 'Prefix'\;
+    $var->{EnvVarSeparator} = '\;'\;
+    $var->{EnvVarType} = 'USER'\;
+    if \(isAdmin \(\)\) {
+        $var->{EnvVarType} = 'SYSTEM'\;
+    }
+    my $msg = $self->AddMessage \(\"Adding to \" . $var->{EnvVarType} . \" PATH: $path\"\)\;
+    if \(!defined $var->set \(\)\) {
+        $self->AddError \(\"Failed to set \" . $envvar, $errlst\)\;
+    }
+    $self->AddSubMsgLst \($msg, $var\)\;
+    return 1\;
+}
+
+sub Unregister {
+    if \(!$isWin\) {
+        return 1\;
+    }
+    if \(defined $ENV{HDB_INSTALL_NOPATH}\) {
+        $self->AddMessage \(\"HDB_INSTALL_NOPATH is set, skipping removing PATH\"\)\;
+        return 1\;
+    }
+    if \(index\($path, '\\usr\\sap'\) != -1\) {
+        $self->AddMessage \(\"\\usr\\sap appears in path, skipping removing PATH\"\)\;
+        return 1\;
+    }
+    my \($self\) = @_\;
+    my $path = $self->getPath \(\)\;
+    my $var = new SDB::Install::System::EnvVariable \(\"PATH\", $path\)\;
+    my $errlst = new SDB::Install::MsgLst \(\)\;
+    $var->{EnvVarValue} = $path\;
+    $var->{EnvVarExtend} = 'Prefix'\;
+    $var->{EnvVarSeparator} = '\;'\;
+    $var->{EnvVarType} = 'USER'\;
+    if \(isAdmin \(\)\) {
+        $var->{EnvVarType} = 'SYSTEM'\;
+    }
+    my $msg = $self->AddMessage \(\"Removing from \" . $var->{EnvVarType} . \" PATH: $path\"\)\;
+    if \(!defined $var->unset \(\)\) {
+        $self->AddError \(\"Failed to remove from PATH: \", $errlst\)\;
+    }
+    $self->AddSubMsgLst \($msg, $var\)\;
+    return 1\;
+}
+
+
+sub Postinstall\(\) {
+    my \(
+        $self
+    \) = @_\;
+    if \($^O ne 'MSWin32'\)
+    {
+        my $path = $self->getPath\(\)\;
+        my $scriptname = File::Spec->catfile\( $path, 'hdbclienv.sh' \)\;
+        open\(FH, \"<\".$scriptname\) || die \"Can't open hdbclienv.sh for reading\"\;
+        my @contents = <FH>\;
+        close\(FH\)\;
+        my @replaced\;
+        foreach\(@contents\) {
+            $_ =~ s/\@REPLACE_INSTALL_PATH\@/$path/g\;
+            push\(@replaced, $_\)\;
+        }
+        open\(FH, \">\".$scriptname\) || die \"Can't open hdbclienv.sh for writing\"\;
+        print FH @replaced\;
+        close\(FH\)\;
+    }
+    return 1\;
+}
+
+1\;
+
+"";;""name"" => ""Environment Script"";;""modtime"" => ""1673294651"";;""buildstring"" => ""2.11.14.1636568807"";;""checksum"" => ""d9d1c4eefa9b2dc2f7d23189a38713bb"";;""desc"" => ""Environment Script"";;""size"" => ""2640"";;""type"" => undef;;""valid"" => ""1"";;""isClientPackage"" => ""1"";;""version"" => ""2.11.14.1636568807"";;""debugArchive"" => undef;;""files"" => HASH(""hdbclienv.sh"" => HASH(""checksum"" => ""788678cbadd119bd217dc68bc97a2487"";;""mtime"" => ""1636569149"";;""mode"" => ""493"";;""size"" => ""2640""));;""git_hash"" => ""2708a618ba5d44937cca75de0ea8c41a396838bd"");;""jdbc"" => HASH(""name"" => ""JDBC"";;""desc"" => ""JDBC Driver"";;""modtime"" => ""1673294650"";;""buildstring"" => ""2.11.14.1636568807"";;""checksum"" => ""361871f163e944474cd75c1e5591664d"";;""script"" => ""use strict\;
+
+our $listname = 'hdbclient.lst'\;
+
+sub getExternalFileListName{
+    return $listname\;
+}
+
+1\;
+"";;""type"" => undef;;""size"" => ""1272386"";;""debugArchive"" => undef;;""requires"" => ARRAY(HASH(""id"" => ""manifest"";;""str"" => ""manifest""));;""version"" => ""2.11.14.1636568807"";;""isClientPackage"" => ""1"";;""valid"" => ""1"";;""git_hash"" => ""2708a618ba5d44937cca75de0ea8c41a396838bd"";;""files"" => HASH(""ngdbc.jar"" => HASH(""mtime"" => ""1636569149"";;""size"" => ""1272386"";;""mode"" => ""292"";;""checksum"" => ""a7de0c95e441edae26d9bdfbf735fa57"")));;""pydbapi"" => HASH(""type"" => undef;;""size"" => ""23410077"";;""name"" => ""Python DB API"";;""modtime"" => ""1673294650"";;""desc"" => ""Python DB API"";;""buildstring"" => ""2.11.14.1636568807"";;""checksum"" => ""a0c13e32ebfe551871f45c731b96d618"";;""script"" => ""1\;
+
+"";;""git_hash"" => ""2708a618ba5d44937cca75de0ea8c41a396838bd"";;""files"" => HASH(""hdbcli-2.11.14.tar.gz"" => HASH(""mode"" => ""292"";;""size"" => ""23410077"";;""mtime"" => ""1636569662"";;""checksum"" => ""d1f52e12aace9a733103ce815cb40d38""));;""debugArchive"" => undef;;""requires"" => ARRAY(HASH(""id"" => ""manifest"";;""str"" => ""manifest""));;""version"" => ""2.11.14.1636568807"";;""valid"" => ""1"";;""isClientPackage"" => ""1"");;""dbcapi"" => HASH(""files"" => HASH(""libdbcapiHDB.so"" => HASH(""checksum"" => ""485936701cb180ac65c030cddfbe6c45"";;""mtime"" => ""1636569591"";;""mode"" => ""365"";;""size"" => ""38084256""));;""git_hash"" => ""2708a618ba5d44937cca75de0ea8c41a396838bd"";;""isClientPackage"" => ""1"";;""valid"" => ""1"";;""debugArchive"" => undef;;""requires"" => ARRAY(HASH(""str"" => ""manifest"";;""id"" => ""manifest""));;""version"" => ""2.11.14.1636568807"";;""type"" => undef;;""size"" => ""38084256"";;""script"" => ""use SDB::Install::SysVars\;
+use SDB::Install::System qw \(exec_program\)\;
+
+use strict\;
+
+1\;
+"";;""name"" => ""DBCAPI"";;""checksum"" => ""8417f533796a4b154fcee79471aa77f7"";;""modtime"" => ""1673294650"";;""desc"" => ""C/C++ DBCAPI interface"";;""buildstring"" => ""2.11.14.1636568807"");;""nodejs"" => HASH(""script"" => ""use SDB::Install::SysVars\;
+use SDB::Install::System qw \(exec_program\)\;
+
+use strict\;
+
+1\;
+"";;""name"" => ""node.js Client"";;""checksum"" => ""3bae14c30a11e83eff046374c5253e8e"";;""modtime"" => ""1673294651"";;""desc"" => ""node.js DBCAPI Client Interface"";;""buildstring"" => ""2.11.14.1636568807"";;""size"" => ""42396391"";;""type"" => undef;;""isClientPackage"" => ""1"";;""valid"" => ""1"";;""version"" => ""2.11.14.1636568807"";;""debugArchive"" => undef;;""requires"" => ARRAY(HASH(""id"" => ""manifest"";;""str"" => ""manifest"");;HASH(""str"" => ""dbcapi"";;""id"" => ""dbcapi""));;""files"" => HASH(""node/README.md"" => HASH(""checksum"" => ""b87d8be91497200938513cbec42ac9ce"";;""mtime"" => ""1636569592"";;""size"" => ""5825"";;""mode"" => ""292"");;""node/extension/FunctionCode.js"" => HASH(""checksum"" => ""03485a19ec0f1225fea286e281d4b566"";;""mode"" => ""292"";;""size"" => ""556"";;""mtime"" => ""1636569592"");;""node/extension/Stream.js"" => HASH(""checksum"" => ""946ede6369972834de43d6e570bacf4b"";;""size"" => ""22359"";;""mode"" => ""292"";;""mtime"" => ""1636569592"");;""node/extension/TypeCode.js"" => HASH(""checksum"" => ""49753442b7137499c3c2fdc8b1e679ae"";;""mode"" => ""292"";;""size"" => ""1285"";;""mtime"" => ""1636569592"");;""node/checkbuild.js"" => HASH(""checksum"" => ""f9327142ccc2343d353d9765f0e33bdd"";;""mtime"" => ""1636569592"";;""size"" => ""576"";;""mode"" => ""292"");;""node/prebuilt/linuxx86_64-gcc48/libdbcapiHDB.so"" => HASH(""mtime"" => ""1636569591"";;""mode"" => ""365"";;""size"" => ""38084256"";;""checksum"" => ""485936701cb180ac65c030cddfbe6c45"");;""node/prebuilt/linuxx86_64-gcc48/hana-client.node"" => HASH(""checksum"" => ""74838c9ed7084540ad7b7dcda4c39690"";;""mode"" => ""365"";;""size"" => ""4253880"";;""mtime"" => ""1636569216"");;""node/extension/Enums.js"" => HASH(""checksum"" => ""490dfa86814966f41833254bd1999b13"";;""mtime"" => ""1636569592"";;""mode"" => ""292"";;""size"" => ""1147"");;""node/package.json"" => HASH(""mode"" => ""292"";;""size"" => ""527"";;""mtime"" => ""1636569592"";;""checksum"" => ""f5558e86dddddfc5ae8136ed25a49628"");;""node/lib/index.js"" => HASH(""checksum"" => ""bf3825478178554905e233ad90e49972"";;""size"" => ""25980"";;""mode"" => ""292"";;""mtime"" => ""1636569592""));;""git_hash"" => ""2708a618ba5d44937cca75de0ea8c41a396838bd"");;""examples"" => HASH(""git_hash"" => ""2708a618ba5d44937cca75de0ea8c41a396838bd"";;""files"" => HASH(""examples/node/app1.js"" => HASH(""checksum"" => ""b810d2f668d862e627f26ed763392b43"";;""mtime"" => ""1636569592"";;""mode"" => ""420"";;""size"" => ""4686"");;""examples/dotnetcore/readme.txt"" => HASH(""checksum"" => ""4651e4b1e6d6da41ceb6fb0ec4195b0c"";;""size"" => ""1676"";;""mode"" => ""420"";;""mtime"" => ""1636569149"");;""examples/node/readme.txt"" => HASH(""checksum"" => ""61b8547b168c542c31e23cf1e2636ae2"";;""size"" => ""307"";;""mode"" => ""420"";;""mtime"" => ""1636569592"");;""examples/dotnetcore/Example2/Program.cs"" => HASH(""checksum"" => ""794ec7dd1eb492ab825b4c0756b49b29"";;""mtime"" => ""1636569149"";;""size"" => ""4208"";;""mode"" => ""420"");;""examples/golang/src/statement/statement_examples.go"" => HASH(""checksum"" => ""de826ca9db62a875505c68dc9e50ee6d"";;""mode"" => ""420"";;""size"" => ""9166"";;""mtime"" => ""1636569591"");;""examples/readme.txt"" => HASH(""mode"" => ""420"";;""size"" => ""812"";;""mtime"" => ""1636569149"";;""checksum"" => ""e177ae8c0947b72ac7d93d6bef01ebcf"");;""examples/dotnetcore/Example2/Example2.csproj"" => HASH(""checksum"" => ""1dd807b967d9fe8443559b20bb7223f9"";;""mtime"" => ""1636569149"";;""size"" => ""503"";;""mode"" => ""420"");;""examples/node/app2.js"" => HASH(""checksum"" => ""4ea9922c44f5eb0a72b094180f036840"";;""size"" => ""3995"";;""mode"" => ""420"";;""mtime"" => ""1636569592"");;""examples/golang/src/lobs/lob_examples.go"" => HASH(""checksum"" => ""8fd98af905a9874f38ab709b6e5659bc"";;""size"" => ""1632"";;""mode"" => ""420"";;""mtime"" => ""1636569591"");;""examples/dotnetcore/Example1/Example1.csproj"" => HASH(""mtime"" => ""1636569149"";;""mode"" => ""420"";;""size"" => ""503"";;""checksum"" => ""1dd807b967d9fe8443559b20bb7223f9"");;""examples/golang/src/transactions/transaction_examples.go"" => HASH(""checksum"" => ""f4dbd27738bffd028ce3029c1ec81491"";;""mtime"" => ""1636569591"";;""mode"" => ""420"";;""size"" => ""3985"");;""examples/dotnetcore/Example1/Program.cs"" => HASH(""checksum"" => ""39b01d69c0bb3dcf92cee6db68d47766"";;""mode"" => ""420"";;""size"" => ""2646"";;""mtime"" => ""1636569149""));;""version"" => ""2.11.14.1636568807"";;""requires"" => ARRAY(HASH(""id"" => ""manifest"";;""str"" => ""manifest""));;""debugArchive"" => undef;;""isClientPackage"" => ""1"";;""valid"" => ""1"";;""size"" => ""34119"";;""type"" => undef;;""desc"" => ""Code Examples"";;""modtime"" => ""1673294651"";;""checksum"" => ""10e64df3ab67e32fbb54cf922b9acc1d"";;""buildstring"" => ""2.11.14.1636568807"";;""name"" => ""Code Examples"";;""script"" => ""use SDB::Install::SysVars\;
+use SDB::Install::System qw \(exec_program\)\;
+
+use strict\;
+
+1\;
+"");;""mlapi"" => HASH(""git_hash"" => ""2708a618ba5d44937cca75de0ea8c41a396838bd"";;""files"" => HASH(""hana_ml-2.11.21121102.tar.gz"" => HASH(""mtime"" => ""1636569132"";;""mode"" => ""292"";;""size"" => ""2992683"";;""checksum"" => ""993819c110e5fc299a73e2d403ea48e5""));;""version"" => ""2.11.14.1636568807"";;""requires"" => ARRAY(HASH(""id"" => ""manifest"";;""str"" => ""manifest"");;HASH(""id"" => ""pydbapi"";;""str"" => ""pydbapi""));;""debugArchive"" => undef;;""isClientPackage"" => ""1"";;""valid"" => ""1"";;""size"" => ""2992683"";;""type"" => undef;;""modtime"" => ""1673294650"";;""buildstring"" => ""2.11.14.1636568807"";;""desc"" => ""Python Machine Learning Client for SAP HANA"";;""checksum"" => ""a051bd9abcea11388656583eabb5100e"";;""name"" => ""Python Machine Learning Client"";;""script"" => ""1\;
+
+"");;""halmclient"" => HASH(""script"" => ""1\;
+"";;""name"" => ""HALM Client"";;""desc"" => ""HALM Client"";;""modtime"" => ""1673294650"";;""buildstring"" => ""2.11.14.1636568807"";;""checksum"" => ""dd93e778a943d8a73cc2a267ca4e4a31"";;""type"" => undef;;""size"" => ""517161"";;""valid"" => ""1"";;""isClientPackage"" => ""1"";;""debugArchive"" => undef;;""requires"" => ARRAY(HASH(""id"" => ""manifest"";;""str"" => ""manifest""));;""version"" => ""2.11.14.1636568807"";;""files"" => HASH(""hdbalm3.py"" => HASH(""mode"" => ""493"";;""size"" => ""256972"";;""mtime"" => ""1636569064"";;""checksum"" => ""3560322ab1d36e786fcd1de68c85dedf"");;""hdbalm.py"" => HASH(""checksum"" => ""e9b8b9611df224299f5a06a9b54f87bb"";;""mode"" => ""493"";;""size"" => ""258190"";;""mtime"" => ""1636569064"");;""hdbalm"" => HASH(""checksum"" => ""8e07feef937dbcd945a935bb2e633f12"";;""mtime"" => ""1636569064"";;""size"" => ""1999"";;""mode"" => ""493""));;""git_hash"" => ""2708a618ba5d44937cca75de0ea8c41a396838bd""));;""ID"" => ""MaxDB InstallRegistry"";;""VERSION"" => ""1.1"")
