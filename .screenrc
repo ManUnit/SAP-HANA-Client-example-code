@@ -1,0 +1,9 @@
+escape ^Gg
+mousetrack on
+defmousetrack on
+split
+split -v
+focus
+focus
+focus
+
